@@ -1,0 +1,9 @@
+langgraph
+langchain_anthropic
+langchain_core
+langchain_openai
+gitpython
+python-dotenv
+pydantic
+aider-chat
+semantic-router

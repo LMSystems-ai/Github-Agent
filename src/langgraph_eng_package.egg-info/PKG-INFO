@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: langgraph_eng_package
+Version: 0.0.1
+Requires-Dist: langgraph
+Requires-Dist: langchain_anthropic
+Requires-Dist: langchain_core
+Requires-Dist: langchain_openai
+Requires-Dist: gitpython
+Requires-Dist: python-dotenv
+Requires-Dist: pydantic
+Requires-Dist: aider-chat
+Requires-Dist: semantic-router
