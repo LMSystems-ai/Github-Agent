@@ -5,6 +5,7 @@
 
 The main Langgraph app code is in the `src` folder.
 
+Read the Issues.md file for important issues with the current graph.
 
 ## Setup Guide
 
