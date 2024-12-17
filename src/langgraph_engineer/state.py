@@ -101,9 +101,8 @@ class AgentState(TypedDict, total=False):
     current_step: int
     step_results: Dict[str, StepResult]
     execution_status: Literal["planning", "executing", "critiquing", "complete"]
+    # Add router analysis field
     router_analysis: Dict[str, Any]
-    # New fields for XML critique
-    next_instructions: Optional[str]  # Store instructions from critique XML
 
 # Graph configuration
 class GraphConfig(TypedDict):

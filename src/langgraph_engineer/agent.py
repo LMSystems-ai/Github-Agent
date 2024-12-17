@@ -4,7 +4,6 @@ import shutil
 import time
 import logging
 import json
-import re
 
 from langgraph.graph import StateGraph, END, MessagesState
 from langchain_core.messages import AIMessage, HumanMessage, FunctionMessage
@@ -21,10 +20,10 @@ from langgraph_engineer.state import AgentState, OutputState, GraphConfig, Input
 from langgraph_engineer.setup_node import setup_repository, route_setup, validate_setup
 from langgraph_engineer.git_push_node import git_push_changes
 from langchain_core.tools import BaseTool
-from langgraph_engineer.route_message import route_message
 from langgraph_engineer.post_critique_router import post_critique_route
 from langgraph_engineer.summarize import summarize_response
 from langgraph_engineer.aider_node import create_aider_node
+from langgraph_engineer.router_agent import route_request
 
 
 
@@ -33,41 +32,24 @@ anthropic_api_key = os.getenv('ANTHROPIC_API_KEY', '')
 # Add at the top of the file, after imports
 logger = logging.getLogger(__name__)
 
-def parse_critique_xml(xml_content: str) -> tuple[str, str]:
-    """Parse the critique XML response to extract route and instructions."""
-    try:
-        # Extract node route
-        route_match = re.search(r'<node_route>(.*?)</node_route>', xml_content, re.DOTALL)
-        route = route_match.group(1).strip() if route_match else "react_agent"
+def route_critique(state: AgentState) -> Literal["react_agent", "git_push_changes", END]:
+    """Route after critique based on validation results."""
+    # Update execution_status based on critique output
+    if state.get("step_results"):
+        latest_result = list(state["step_results"].values())[-1]
+        completion_status = latest_result.get("args", {}).get("completion_status")
+        if completion_status in ["complete_with_changes", "complete_no_changes"]:
+            state["execution_status"] = "complete"
 
-        # Extract instructions
-        instructions_match = re.search(r'<instructions>(.*?)</instructions>', xml_content, re.DOTALL)
-        instructions = instructions_match.group(1).strip() if instructions_match else ""
-
-        return route, instructions
-    except Exception as e:
-        logger.error(f"Error parsing critique XML: {str(e)}")
-        return "react_agent", ""
-
-def route_critique(state: AgentState) -> Literal["aider_node", "git_push_changes", "react_agent"]:
-    """Route after critique based on XML response."""
-    try:
-        # Get the critique response from state
-        critique_response = state.get("step_results", {}).get("critique", {}).get("response", "")
-
-        # Parse the XML response
-        route, instructions = parse_critique_xml(critique_response)
-
-        # Store instructions in state for the next node
-        state["next_instructions"] = instructions
-
-        # Return the route from the XML
-        if route in ["aider_node", "git_push_changes"]:
-            return route
-        return "react_agent"  # Default fallback
-
-    except Exception as e:
-        logger.error(f"Error in route_critique: {str(e)}")
+    if not state["accepted"]:
+        # If changes weren't accepted, go back to planning
+        state["execution_status"] = "planning"
+        return "react_agent"
+    elif state["execution_status"] == "complete":
+        # If we're done and accepted, proceed to git push
+        return "git_push_changes"
+    else:
+        # If we're still executing and accepted current step, back to react
         return "react_agent"
 
 def route_git_push(state: AgentState) -> Literal[END]:
@@ -121,24 +103,23 @@ def route_tool(state: AgentState) -> Literal["react_agent"]:
     """Route back to react_agent after tool execution."""
     return "react_agent"
 
-def route_aider(state: AgentState) -> Literal["critique", "summarize"]:
-    """Route after aider_node to either critique or summarize."""
+def route_aider(state: AgentState) -> Literal["git_push_changes", "summarize"]:
+    """Route after aider_node to either git_push_changes or summarize."""
     # Check if this was a no-changes-required request
     changes_req = state.get("router_analysis", {}).get("changes_req", True)
 
     if not changes_req:
         return "summarize"
-    return "critique"
+    return "git_push_changes"
 
 def route_summarize(state: AgentState) -> Literal[END]:
     """Route to END after summarization."""
     return END
 
 def route_message_node(state: AgentState) -> Literal["react_agent", "aider_node"]:
-    """Route based on message router's XML analysis"""
+    """Route based on message router's analysis"""
     route_type = state.get("router_analysis", {}).get("route_type", "hard")
 
-    # Simple routing based on the XML agent's decision
     if route_type == "chat":
         return "aider_node"
     elif route_type == "easy":
@@ -218,10 +199,10 @@ workflow = StateGraph(AgentState)
 workflow.add_node("setup_node", setup_repository)
 workflow.add_node("react_agent", react_agent)
 workflow.add_node("aider_node", aider_node)
-workflow.add_node("critique", critique)
+# workflow.add_node("critique", critique)  # Commenting out critique node
 workflow.add_node("git_push_changes", git_push_changes)
-workflow.add_node("route_message", route_message)
-# workflow.add_node("post_critique_router", post_critique_route)
+workflow.add_node("router_agent", route_request)
+# workflow.add_node("post_critique_router", post_critique_route)  # Commenting out post critique router
 workflow.add_node("summarize", summarize_response)
 
 # Set entry point
@@ -232,13 +213,13 @@ workflow.add_conditional_edges(
     "setup_node",
     route_setup,
     {
-        "route_message": "route_message"
+        "router_agent": "router_agent"
     }
 )
 
 # Add router edges
 workflow.add_conditional_edges(
-    "route_message",
+    "router_agent",
     route_message_node,
     {
         "react_agent": "react_agent",
@@ -268,23 +249,12 @@ workflow.add_conditional_edges(
     }
 )
 
-# workflow.add_edge("critique", "post_critique_router")
-
-# workflow.add_conditional_edges(
-#     "post_critique_router",
-#     route_post_critique,
-#     {
-#         "git_push_changes": "git_push_changes",
-#         "react_agent": "react_agent"
-#     }
-# )
-
 workflow.add_conditional_edges(
     "aider_node",
     route_aider,
     {
-        "critique": "critique",
-        "summarize": "summarize"
+        "summarize": "summarize",
+        "git_push_changes": "git_push_changes"
     }
 )
 
@@ -293,16 +263,6 @@ workflow.add_conditional_edges(
     route_summarize,
     {
         END: END
-    }
-)
-
-workflow.add_conditional_edges(
-    "critique",
-    route_critique,
-    {
-        "aider_node": "aider_node",
-        "git_push_changes": "git_push_changes",
-        "react_agent": "react_agent"
     }
 )
 

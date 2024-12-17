@@ -8,27 +8,39 @@ import json
 
 logger = logging.getLogger(__name__)
 
-# Update the critique prompt to guide XML output
+# Simplified critique prompt focused on natural language response
 critique_prompt = """Review if the Task was fully completed given the user's requirements and the steps/changes made.
 
 Original User Requirements:
 {requirements}
 
 Here was our agent's original plan:
+Plan:
 {plan}
 
-Analyze the implementation and respond in XML format with two tags:
-1. <node_route> - either "aider_node" if more changes are needed, or "git_push_changes" if the task is complete
-2. <instructions> - if routing to aider_node, provide specific coding instructions for the next step. If routing to git_push_changes, explain why the task is complete.
+and here's the results from that plan:
+Step Results:
+{step_results}
 
-Example response for incomplete task:
-<node_route>aider_node</node_route>
-<instructions>Please modify the login function to add input validation for the email field using regex.</instructions>
+Please provide a detailed analysis that covers:
+1. What specific changes were found and implemented
+2. How well each requirement was addressed
+3. The quality of the implementation
+4. Whether changes stayed within the expected scope
 
-Example response for complete task:
-<node_route>git_push_changes</node_route>
-<instructions>All requirements have been met: user authentication implemented, input validation added, and tests created.</instructions>
+Use clear, standardized phrases like:
+- "changes were successfully implemented" or "changes are missing"
+- "requirements were fully met" or "requirements were not fully met"
+- "implementation was correct" or "implementation needs revision"
+- "changes stayed within scope" or "unauthorized changes detected"
 """
+
+
+class Accept(BaseModel):
+    """Schema for critique response"""
+    logic: str
+    accept: bool
+    completion_status: str
 
 
 def _swap_messages(messages):
@@ -80,28 +92,36 @@ def get_git_diff(state: AgentState) -> str:
 
 
 def critique(state: AgentState, config) -> AgentState:
-    """Modified critique to provide XML-formatted response"""
+    """Modified critique to provide natural language analysis"""
     try:
+        # Format the prompt with required information
         formatted_prompt = critique_prompt.format(
             requirements=state.get('requirements', ''),
-            plan=state.get('plan_string', '')
+            plan=state.get('plan_string', ''),
+            step_results=json.dumps(state.get('step_results', {}), indent=2)
         )
 
-        model = _get_model(config, "anthropic", "critique_model")
+        model = _get_model(config, "openai", "critique_model")
+
+        # Create message sequence
         message_sequence = [
             SystemMessage(content=formatted_prompt),
-            AIMessage(content=f"Here are the step results from our implementation:\n{json.dumps(state.get('step_results', {}), indent=2)}\n\nPlease analyze the implementation.")
+            AIMessage(content="Please analyze the implementation.")
         ]
 
+        # Get unstructured response from the model
         response = model.invoke(message_sequence)
+        critique_logic = response.content
 
-        # Update state with just the raw critique response
+        # Update state with critique results
         new_state = {
             **state,
             "step_results": {
                 **(state.get("step_results", {})),
                 "critique": {
-                    "response": response.content
+                    "args": {
+                        "logic": critique_logic
+                    }
                 }
             }
         }
@@ -115,7 +135,9 @@ def critique(state: AgentState, config) -> AgentState:
             "step_results": {
                 **(state.get("step_results", {})),
                 "critique": {
-                    "response": f"Error occurred during critique: {str(e)}"
+                    "args": {
+                        "logic": f"Error occurred during critique: {str(e)}"
+                    }
                 }
             }
         }

@@ -1,57 +1,68 @@
-from langgraph_engineer.model import _get_model
-from langgraph_engineer.state import AgentState
-from langchain_core.messages import SystemMessage, AIMessage
+from semantic_router import Route, RouteLayer
+from semantic_router.encoders import OpenAIEncoder
+from typing import Dict, Any
+from langgraph_engineer.state import AgentState, PlanStep
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 
-# Define the routing prompt
-router_prompt = """You are a specialized routing agent that determines how to handle user requests in a code engineering system.
+# Define routes for different types of queries
+chat_route = Route(
+    name="chat",
+    utterances=[
+        "give me an overview of this repository",
+        "describe the project structure",
+        "list the main contributors",
+        "what technologies are used here",
+        "show me the project dependencies",
+        "explain the system architecture",
+        "what's the development status",
+        "describe the main components",
+        "what are the key features",
+        "show documentation for this project",
+    ],
+)
 
-There are three possible routes:
-1. "chat" - For general questions about the codebase, architecture, or project information
-2. "easy" - For simple code modifications like renaming, formatting, or adding basic error handling
-3. "hard" - For complex changes requiring careful planning like refactoring, adding new features, or architectural changes
+easy_route = Route(
+    name="easy",
+    utterances=[
+        "change variable name from X to Y",
+        "add type hints to this function",
+        "fix the indentation in this file",
+        "add a docstring to explain this code",
+        "remove this unused import statement",
+        "add error handling here",
+        "update this log message",
+        "fix this spelling mistake",
+        "add these missing parameters",
+        "update this function's return type",
+        "move this code block to a new function",
+    ],
+)
 
-Analyze the user's request and respond in XML format with two tags:
-1. <node_route> - either "chat", "easy", or "hard"
-2. <reasoning> - explain why you chose this route
+hard_route = Route(
+    name="hard",
+    utterances=[
+        "create a new feature that...",
+        "refactor this module to use...",
+        "implement caching for...",
+        "add authentication to...",
+        "optimize the performance of...",
+        "create unit tests for...",
+        "integrate this new library...",
+        "implement a new API endpoint...",
+        "fix these security issues...",
+        "redesign this component to...",
+        "add support for async operations",
+    ],
+)
 
-User Request:
-{requirements}
+# Initialize the route layer
+encoder = OpenAIEncoder()
+route_layer = RouteLayer(encoder=encoder, routes=[chat_route, easy_route, hard_route])
 
-Example responses:
-
-For a chat query:
-<node_route>chat</node_route>
-<reasoning>This is a general question about the project's architecture that doesn't require code changes.</reasoning>
-
-For an easy change:
-<node_route>easy</node_route>
-<reasoning>This is a simple request to rename a variable, which can be done with minimal risk and doesn't require complex planning.</reasoning>
-
-For a complex change:
-<node_route>hard</node_route>
-<reasoning>This request involves significant architectural changes and requires careful planning to implement safely.</reasoning>
-"""
-
-def parse_router_xml(xml_content: str) -> tuple[str, str]:
-    """Parse the router XML response to extract route and reasoning."""
-    try:
-        route_match = re.search(r'<node_route>(.*?)</node_route>', xml_content, re.DOTALL)
-        route = route_match.group(1).strip() if route_match else "hard"
-
-        reasoning_match = re.search(r'<reasoning>(.*?)</reasoning>', xml_content, re.DOTALL)
-        reasoning = reasoning_match.group(1).strip() if reasoning_match else ""
-
-        return route, reasoning
-    except Exception as e:
-        logger.error(f"Error parsing router XML: {str(e)}")
-        return "hard", "Error parsing response, defaulting to hard route"
-
-def route_message(state: AgentState, config) -> AgentState:
-    """Routes the user's message using an LLM to generate XML-formatted routing decisions"""
+def route_message(state: AgentState) -> AgentState:
+    """Routes the user's message to either chat, easy, or hard paths"""
     try:
         # Get requirements from state
         requirements = state.get('requirements', '')
@@ -62,38 +73,44 @@ def route_message(state: AgentState, config) -> AgentState:
                     requirements = msg.content
                     break
 
-        # Format the prompt
-        formatted_prompt = router_prompt.format(requirements=requirements)
-
-        # Get model response
-        model = _get_model(config, "anthropic", "router_model")
-        message_sequence = [
-            SystemMessage(content=formatted_prompt),
-            AIMessage(content=f"Please analyze this request: {requirements}")
-        ]
-
-        response = model.invoke(message_sequence)
-
-        # Parse the XML response
-        route_type, reasoning = parse_router_xml(response.content)
+        # Use semantic router to determine the route
+        route_choice = route_layer(requirements)
+        route_type = route_choice.name if route_choice else "hard"  # Default to hard if no match
 
         # Update state with routing decision
-        return {
+        new_state = {
             **state,
             "router_analysis": {
                 "route_type": route_type,
-                "changes_req": route_type != "chat",
-                "reasoning": reasoning
+                "changes_req": route_type != "chat"
             }
         }
 
+        # Prepare step information for both chat and easy routes
+        if route_type in ["chat", "easy"]:
+            new_state["steps"] = [
+                PlanStep(
+                    reasoning="Direct execution of request",
+                    step_id="S1",
+                    tool_name="aider_shell",
+                    tool_args={
+                        "message": requirements,
+                        "files": "."
+                    }
+                )
+            ]
+            new_state["current_step"] = 0
+            new_state["execution_status"] = "executing"
+
+        return new_state
+
     except Exception as e:
         logger.error(f"Error in route_message: {str(e)}")
+        # Default to hard on error for safety
         return {
             **state,
             "router_analysis": {
                 "route_type": "hard",
-                "changes_req": True,
-                "reasoning": f"Error occurred during routing: {str(e)}"
+                "changes_req": True
             }
         }

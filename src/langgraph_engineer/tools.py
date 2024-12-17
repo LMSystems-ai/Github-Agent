@@ -29,7 +29,6 @@ import pty
 import fcntl
 import termios
 import struct
-from .configuration import Configuration  # Add this import at the top
 
 # Import all needed types from state
 from langgraph_engineer.state import (
@@ -533,24 +532,10 @@ class AiderShellTool(BaseTool):
             if not self.state:
                 raise ValueError("State is required - ensure it's being passed to AiderShellTool.")
 
-            # Get configuration instance from runnable config
-            config_instance = Configuration.from_runnable_config(kwargs.get('config'))
-
-            # Try getting API key in order of precedence:
-            # 1. From config instance
-            # 2. From state
-            # 3. From environment variable
-            anthropic_api_key = (
-                getattr(config_instance, 'anthropic_api_key', None) or
-                self.state.get('anthropic_api_key') or
-                os.getenv('ANTHROPIC_API_KEY')
-            )
-
+            # Ensure we have the API key
+            anthropic_api_key = self.state.get('anthropic_api_key') or os.getenv('ANTHROPIC_API_KEY')
             if not anthropic_api_key:
-                raise ValueError("ANTHROPIC_API_KEY not found in config, state, or environment")
-
-            # Set the API key in environment for aider
-            os.environ['ANTHROPIC_API_KEY'] = anthropic_api_key
+                raise ValueError("ANTHROPIC_API_KEY not found in state or environment")
 
             # Use pre-configured values if not provided in call
             message = message or self.message
@@ -645,8 +630,10 @@ class AiderShellTool(BaseTool):
         except Exception as e:
             error_msg = f"Error in aider_shell: {str(e)}"
             self.logger.error(error_msg, exc_info=True)
+            # Log the traceback for detailed debugging
             self.logger.error(traceback.format_exc())
 
+            # Return error with current state
             return AiderToReactOutput(
                 response=error_msg,
                 updated_aider_state=self.state['aider_state']

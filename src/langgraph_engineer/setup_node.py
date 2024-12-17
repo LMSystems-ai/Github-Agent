@@ -108,11 +108,11 @@ async def setup_repository(state: AgentState) -> AgentState:
         logger.error(f"Error in setup_repository: {str(e)}", exc_info=True)
         raise
 
-async def route_setup(state: AgentState) -> Literal["setup_node", "route_message"]:
-    """Route to setup node if repository is not initialized, otherwise to route_message."""
+async def route_setup(state: AgentState) -> Literal["setup_node", "router_agent"]:
+    """Route to setup node if repository is not initialized, otherwise to router_agent."""
     if not state.get('repo_path') or not os.path.exists(state.get('repo_path', '')):
         return "setup_node"
-    return "route_message"
+    return "router_agent"
 
 async def validate_setup(state: AgentState) -> bool:
     """Validate that repository setup was successful."""
