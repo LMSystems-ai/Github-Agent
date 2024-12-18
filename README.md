@@ -68,7 +68,7 @@ The app will be available at:
 - API Documentation: http://localhost:8123/docs
 - LangGraph Studio: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
-You can test the sdk in the `connecting.ipynb` file.
+You can test the sdk in the `connecting.ipynb` file or by following the Langgraph Studio Link.
 
 
 
