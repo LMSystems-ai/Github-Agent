@@ -18,10 +18,6 @@ This guide will help you deploy the LangGraph app locally using Docker Compose.
    - Anthropic API Key
    - OpenAI API Key (optional)
 
-For Local deployment:
-   - Install [Docker](https://docs.docker.com/engine/install/)
-- Install [Docker Compose](https://docs.docker.com/compose/install/)
-
 
 ## Quick Start (Langgraph Studio)
 ```bash
@@ -36,6 +32,12 @@ langgraph up
 
 
 ### Quick Start (Local Usage)
+
+For Local deployment:
+   - Install [Docker](https://docs.docker.com/engine/install/)
+- Install [Docker Compose](https://docs.docker.com/compose/install/)
+
+Make sure Docker is running.
 
 1. Clone this repository:
 
