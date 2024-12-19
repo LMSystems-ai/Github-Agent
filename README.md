@@ -20,6 +20,9 @@ This guide will help you deploy the LangGraph app locally using Docker Compose.
 
 
 ## Quick Start (Langgraph Studio)
+
+Rename the `.env.example` file to `.env` and add your API keys.
+
 ```bash
 export LANGSMITH_API_KEY=your_langsmith_key
 ```
@@ -28,13 +31,22 @@ export LANGSMITH_API_KEY=your_langsmith_key
 langgraph up
 ```
 
+the required inputs for the graph are:
+ - Repo Url (https://github.com/username/repo-name)
+ - Repo Path (/user/123456)
+ - Github Token (Github Access token from your [account](https://github.com/settings/tokens))
+ - Message (the task or question you're asking)
+
+
+
 ------------------------------------------------------------------------------------------------
 
 
-### Quick Start (Local Usage)
+
+### Quick Start (Local Deployment)
 
 For Local deployment:
-   - Install [Docker](https://docs.docker.com/engine/install/)
+- Install [Docker](https://docs.docker.com/engine/install/)
 - Install [Docker Compose](https://docs.docker.com/compose/install/)
 
 Make sure Docker is running.
