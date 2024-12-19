@@ -9,7 +9,7 @@ Read the Issues.md file for important issues with the current graph.
 
 ## Setup Guide
 
-This guide will help you deploy the LangGraph app locally using Docker Compose.
+This guide will help you deploy the LangGraph app locally:
 
 ### Prerequisites
 
