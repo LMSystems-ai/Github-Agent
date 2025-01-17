@@ -1,0 +1,46 @@
+# Environment and local settings
+.env
+env.md
+.ipynb_checkpoints
+.langgraph-data
+.langgraph_api/
+.pytest_cache/
+.aider*
+
+# Python-related
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+langgraph_eng_package.egg-info/
+
+# Project-specific directories
+static/
+tests/
+users/
+py-testing/
+prebuilt/
+api/
+versions/
+
+# Notebooks and documentation
+*.ipynb
+!connecting.ipynb
+curl.md
+langgraph-curl.md
+rules.md
+
+# Docker
+docker-compose.yml
+
+# Test files
+aider-test.py
+test-tools.py
+
+# Archives
+*.zip
+nov-11.zip
+NOV-*.zip

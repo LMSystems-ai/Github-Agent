@@ -1,0 +1,19 @@
+[project]
+name = "langgraph_eng_package"
+version = "0.0.1"
+dependencies = [
+  "langgraph",
+  "langchain_anthropic",
+  "langchain_core",
+  "langchain_openai",
+  "gitpython",
+  "python-dotenv",
+  "pydantic",
+  "aider-chat[browser]",
+  "semantic-router",
+  "libtmux"
+]
+
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
