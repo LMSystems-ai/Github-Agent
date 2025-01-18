@@ -20,4 +20,6 @@ To take it a step further, we can run multiple of these 'ask' nodes in [parallel
 
 Allowing a user to connect to vercel in some way would be largely beneficial for users building nextjs sites. Integrations like this would be great!
 
+Maybe having the aider app run shell commands such as ```npm install``` and ```npm run build```, then analyze the logs would accomplish the same feat and is feasible with our current setup.
+
 
