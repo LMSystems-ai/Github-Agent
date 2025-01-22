@@ -1,6 +1,6 @@
-# LangGraph Engineer
+# Github Agent
 
-LangGraph Engineer is an advanced AI-powered system developed by LM Systems that helps automate and streamline software engineering tasks using language models.
+Github Agent is a coding agent running in Langgraph Cloud made with the Langgraph Framework to clone a repo, then answer questions about it, modify the code, or anything else you prompt it to do!
 
 # Quick Start
 
