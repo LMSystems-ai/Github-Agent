@@ -13,7 +13,7 @@ This aider node is my attempt at replicating this [streamlit app from aider](htt
 #### More Agentic Approaches
 I'd like to see more agentic approaches where we go to collect more information from the repo by first asking a duplicate aider node a question about the repo, then re-prompting the original prompt with the new information.
 
-To take it a step further, we can run multiple of these 'ask' nodes in [parallel](https://langchain-ai.github.io/langgraph/how-tos/branching/) where they ask the same or other repos (likely open source ones), or use a web search tool to (exa, perplexity, google deep research, etc.) to search about a particular package or something.
+To take it a step further, we can run multiple of these 'ask' nodes in [parallel](https://langchain-ai.github.io/langgraph/how-tos/branching/) where they ask the same or other repos (likely open source ones), or use a web search tool (exa, perplexity, google deep research, etc.) to search about a particular package or something.
 
 
 #### Integrations with other tools to close the feedback loop
