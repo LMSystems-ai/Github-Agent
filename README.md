@@ -1,6 +1,8 @@
 # Github Agent
 
-Github Agent is a coding agent running in Langgraph Cloud made with the Langgraph Framework to clone a repo, then answer questions about it, modify the code, or anything else you prompt it to do!
+Github Agent is a coding agent set up for Langgraph Cloud made with the Langgraph Framework to clone a repo, then answer questions about it, modify the code, or anything else you prompt it to do!
+
+Easily use the deployed graph [Here](https://www.lmsystems.ai/graphs/github-agent-48/test)
 
 # Quick Start
 
