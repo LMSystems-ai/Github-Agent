@@ -129,18 +129,34 @@ class InteractiveAider:
         self.api_key = api_key
         self.encoding = encoding
 
-        # Only set environment variables if they're not already set
-        # This ensures state-provided keys take precedence
+        # Store original environment variables
+        self._original_anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+        self._original_openai_key = os.environ.get("OPENAI_API_KEY")
+
+        # Set API key in environment based on model
         if api_key:
-            if self.model == "sonnet":
-                if not os.getenv("ANTHROPIC_API_KEY"):
-                    os.environ["ANTHROPIC_API_KEY"] = api_key
+            # Check if model is an Anthropic model
+            anthropic_models = ["sonnet", "haiku"]  # Add all Anthropic models here
+            if self.model in anthropic_models:
+                logger.info(f"Using provided Anthropic API key from state for model {self.model}")
+                os.environ["ANTHROPIC_API_KEY"] = api_key
+                # Temporarily unset OpenAI key to prevent any confusion
+                if "OPENAI_API_KEY" in os.environ:
+                    del os.environ["OPENAI_API_KEY"]
             else:  # Default to OpenAI
-                if not os.getenv("OPENAI_API_KEY"):
-                    os.environ["OPENAI_API_KEY"] = api_key
+                logger.info(f"Using provided OpenAI API key from state for model {self.model}")
+                os.environ["OPENAI_API_KEY"] = api_key
+                # Temporarily unset Anthropic key to prevent any confusion
+                if "ANTHROPIC_API_KEY" in os.environ:
+                    del os.environ["ANTHROPIC_API_KEY"]
 
         # Get coder instance
-        self.coder = self._get_coder()
+        try:
+            self.coder = self._get_coder()
+        except Exception as e:
+            # Restore original environment variables in case of error
+            self._restore_env_vars()
+            raise e
 
         # Initialize and attach our custom IO
         self.io = StreamingAiderIO(
@@ -157,13 +173,43 @@ class InteractiveAider:
         self.num_reflections = 0
         self.max_reflections = 3
 
+    def _restore_env_vars(self):
+        """Restore original environment variables"""
+        if hasattr(self, '_original_anthropic_key'):
+            if self._original_anthropic_key is not None:
+                os.environ["ANTHROPIC_API_KEY"] = self._original_anthropic_key
+            elif "ANTHROPIC_API_KEY" in os.environ:
+                del os.environ["ANTHROPIC_API_KEY"]
+
+        if hasattr(self, '_original_openai_key'):
+            if self._original_openai_key is not None:
+                os.environ["OPENAI_API_KEY"] = self._original_openai_key
+            elif "OPENAI_API_KEY" in os.environ:
+                del os.environ["OPENAI_API_KEY"]
+
+    def __del__(self):
+        """Cleanup when object is destroyed"""
+        self._restore_env_vars()
+
     def _get_coder(self):
         """Initialize and validate coder instance similar to Streamlit app."""
+        # Validate API key is set for selected model
+        anthropic_models = ["sonnet", "haiku"]
+        if self.model in anthropic_models:
+            if not self.api_key:
+                raise ValueError(f"Anthropic API key not found for {self.model} model")
+        else:
+            if not self.api_key:
+                raise ValueError(f"OpenAI API key not found for {self.model} model")
+
+        # Add API key to command arguments
+        api_flag = "--anthropic-api-key" if self.model in anthropic_models else "--openai-api-key"
         argv = [
             "--model", self.model,
             "--yes-always",
             "--stream",
             "--map-refresh", "auto",
+            api_flag, self.api_key,  # Explicitly pass API key
             str(self.repo_path)
         ]
         argv = [arg for arg in argv if arg]

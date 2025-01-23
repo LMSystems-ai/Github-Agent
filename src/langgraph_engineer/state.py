@@ -55,7 +55,8 @@ class AgentState(TypedDict, total=False):
     repo_path: str
     branch_name: str
     github_token: str
-    anthropic_api_key: str
+    anthropic_api_key: Optional[str]
+    openai_api_key: Optional[str]
     aider_state: AiderState
     chat_mode: Optional[str]
     model_name: Optional[str]
@@ -80,6 +81,8 @@ def initialize_state(
     anthropic_api_key = anthropic_api_key if anthropic_api_key is not None else os.getenv('ANTHROPIC_API_KEY')
     openai_api_key = openai_api_key if openai_api_key is not None else os.getenv('OPENAI_API_KEY')
 
+    # Log which source we're using for each API key
+    logger.debug(f"Using Anthropic API key from: {'parameter' if anthropic_api_key != os.getenv('ANTHROPIC_API_KEY') else 'environment'}")
     logger.debug(f"Using OpenAI API key from: {'parameter' if openai_api_key != os.getenv('OPENAI_API_KEY') else 'environment'}")
 
     repo_path = str(Path(repo_path))
@@ -88,9 +91,15 @@ def initialize_state(
         timestamp = int(datetime.now(timezone.utc).timestamp())
         branch_name = f"feature/ai-changes-{timestamp}"
 
-    valid_models = ['haiku', 'sonnet', '4o', 'o1', 'gpt=4o-mini']
+    valid_models = ['haiku', 'sonnet', '4o', 'o1', 'gpt-4o-mini']
     if model_name and model_name not in valid_models:
         raise ValueError(f"model_name must be one of {valid_models}")
+
+    # Validate API key based on model
+    if model_name in ['haiku', 'sonnet'] and not anthropic_api_key:
+        raise ValueError(f"Anthropic API key is required for model {model_name}")
+    elif model_name in ['4o', 'o1', 'gpt-4o-mini'] and not openai_api_key:
+        raise ValueError(f"OpenAI API key is required for model {model_name}")
 
     state = {
         "messages": [],

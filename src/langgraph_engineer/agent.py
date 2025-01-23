@@ -176,15 +176,22 @@ class Engineer:
         query = input_state.get('query', '')
         github_token = input_state.get('github_token', '')
         anthropic_api_key = input_state.get('anthropic_api_key', '')
+        openai_api_key = input_state.get('openai_api_key', '')  # Add OpenAI key
         chat_mode = input_state.get('chat_mode', '')
+        model_name = input_state.get('model_name', '4o')  # Default to OpenAI model
         logger.info(f"Received chat_mode in input_state: '{chat_mode}'")
+        logger.info(f"Using model: {model_name}")
 
         if not github_token:
             raise ValueError("GitHub token is required in input_state")
         if not repo_url:
             raise ValueError("Repository URL is required")
-        if not anthropic_api_key:
-            raise ValueError("Anthropic API key is required in input_state")
+
+        # Validate API keys based on model
+        if model_name in ['haiku', 'sonnet'] and not anthropic_api_key:
+            raise ValueError(f"Anthropic API key is required for model {model_name}")
+        elif model_name in ['4o', 'o1', 'gpt-4o-mini'] and not openai_api_key:
+            raise ValueError(f"OpenAI API key is required for model {model_name}")
 
         repo_path = os.path.join("/repos", user_id.lstrip('/'))
         os.makedirs(repo_path, exist_ok=True)
@@ -194,7 +201,9 @@ class Engineer:
             github_token=github_token,
             repo_path=repo_path,
             anthropic_api_key=anthropic_api_key,
+            openai_api_key=openai_api_key,
             chat_mode=chat_mode,
+            model_name=model_name,
             query=query
         )
 
