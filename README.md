@@ -33,10 +33,13 @@ User Query => Setup Node => Aider Node <==> Human Interaction => Git Push Change
 
 Here's each node and their corresponding purpose + files.
 
-- **Setup Node** this node clones the given repo with the repo url, github access token, and selected branch name
-- **Aider Node** this node uses [Aider]([https://aider.chat/]) to do the heavy lifting for making code changes to the repo. Aider is a cli tool operating on the cloned repo. We've tried to emulate what they've done with [Aider in the browser]([https://aider.chat/docs/usage/browser.html]) in order to try and capture the llm stream of tokens but we have yet to capture it. See [TODO.md](TODO.md) for more issues.
-- **Human Interaction** we've added a Human-in-the-Loop here which allows the user and aider node to have a back and forth conversation for as many times as they'd like before the human decides to push the local changes to github.  To push the changes to github, you must set the 'Accepted' state values to 'True'.
-- **Git Push Node** Pushes the local changes to the selected branch.
+[Main Graph File](src/langgraph_engineer/agent.py)
+
+- **[Setup Node](src/langgraph_engineer/setup_node.py)** this node clones the given repo with the repo url, github access token, and selected branch name
+- **[Aider Node](src/langgraph_engineer/aider_node.py)** this node uses [Aider]([https://aider.chat/]) to do the heavy lifting for making code changes to the repo. Aider is a cli tool operating on the cloned repo. We've tried to emulate what they've done with [Aider in the browser]([https://aider.chat/docs/usage/browser.html]) in order to try and capture the llm stream of tokens but we have yet to capture it. See [TODO.md](TODO.md) for more issues.
+[secondary file](src/langgraph_engineer/interactive_aider.py)
+- **Human Interaction** we've added a Human-in-the-Loop here which allows the user and aider node to have a back and forth conversation for as many times as they'd like before the human decides to push the local changes to github.  To push the changes to github, you must set the 'Accepted' state values to 'True'. *located in the [main file](src/langgraph_engineer/agent.py)*
+- **[Git Push Node](src/langgraph_engineer/git_push_node.py)** Pushes the local changes to the selected branch.
 
 
 ## Contributing
