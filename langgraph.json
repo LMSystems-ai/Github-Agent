@@ -1,0 +1,20 @@
+{
+  "dockerfile_lines": [
+    "RUN apt-get update && apt-get install -y git bsdutils",
+    "RUN mkdir -p /repos",
+    "RUN pip install aider-chat[browser]",
+    "ENV TERM=xterm-256color",
+    "ENV COLUMNS=80",
+    "ENV LINES=24",
+    "RUN chmod 777 /repos",
+    "WORKDIR /repos"
+  ],
+  "graphs": {
+    "engineer": "./src/langgraph_engineer/agent.py:graph"
+  },
+  "env": ".env",
+  "python_version": "3.11",
+  "dependencies": [
+    "."
+  ]
+}
