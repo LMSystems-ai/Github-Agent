@@ -10,7 +10,7 @@ load_dotenv()
 async def main():
     # Simple initialization with just graph name and API key
     client = await LmsystemsClient.create(
-        graph_name="graph-name-id",
+        graph_name="github-agent-48",
         api_key=os.environ["LMSYSTEMS_API_KEY"]
     )
 
