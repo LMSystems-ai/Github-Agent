@@ -21,7 +21,7 @@ Use langgraph's [quikstart guide]([https://langchain-ai.github.io/langgraph/tuto
 
 ### Why we made this project:
 
-Coding seems to be the killer app for LLMs, but we see a much brighter future in "cloud coding" than coding with traditional IDEs. Cloud coding refers to having your coding enviornemnt running in a server rather than directly on your computer.  We hope to make an AI application which you can give a "task" to and it can go off and compleet that given task, no matter how long it takes. This only becomes possible in cloud coding enviornments because well, people have to turn their computer off eventually.
+Coding seems to be the killer app for LLMs, but we see a much brighter future in "cloud coding" than coding with traditional IDEs. Cloud coding refers to having your coding enviornemnt running in a server rather than directly on your computer.  We hope to make an AI application which you can give a "task" to and it can go off and complete that given task, no matter how long it takes. This only becomes possible in cloud coding enviornments because well, people have to turn their computer off eventually.
 
 This project is the first step towards that world.
 
